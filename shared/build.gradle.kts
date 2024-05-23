@@ -60,6 +60,13 @@ configurations.all {
     }
 }
 
+// Add Gradle task for running iOS instrumented tests.
+tasks.register<Exec>("iosInstrumentedTests") {
+    group = "verification"
+    description = "Runs all iOS instrumented tests with Fastlane."
+    commandLine("bundle", "exec", "fastlane", "run_ui_tests")
+}
+
 android {
     namespace = "ind.beanie.financier"
     compileSdk = 34

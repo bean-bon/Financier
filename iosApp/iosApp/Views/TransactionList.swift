@@ -59,17 +59,28 @@ struct ListView: View {
                             HStack {
                                 Text(t.currencyCode)
                                 Text(String(t.amount))
+                                Spacer()
+                                Text(t.localisedCategory())
                             }
                         }
                     }
                 }.onDelete(perform: { indexSet in
                     onDeleteTransaction(transactions[indexSet.count])
                 })
-            }.navigationTitle("Transactions")
-            NavigationLink("Add transaction") {
-                NewTransaction(onTransactionMade: onAddTransaction)
             }
+            .accessibilityIdentifier(ListView.Accessibility.listView)
+            .navigationTitle(TextKeys.Title.shared.transactions.get())
+            NavigationLink(TextKeys.Button.shared.addTransaction.get()) {
+                NewTransaction(onTransactionMade: onAddTransaction)
+            }.accessibilityIdentifier(ListView.Accessibility.addTransaction)
         }
+    }
+}
+
+extension ListView {
+    class Accessibility {
+        static let listView = "TransactionList"
+        static let addTransaction = "AddTransactionButton"
     }
 }
 

@@ -10,9 +10,10 @@ import kotlin.concurrent.Volatile
  */
 object DatabaseProvider {
 
-    private val config = RealmConfiguration.create(
-        schema = setOf(Transaction::class)
-    )
+    private val config = RealmConfiguration
+        .Builder(schema = setOf(Transaction::class))
+        .deleteRealmIfMigrationNeeded()
+        .build()
 
     @Volatile private var _instance: LocalDatabase? = null
 

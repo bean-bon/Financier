@@ -12,32 +12,47 @@ import shared
 struct NewTransaction: View {
     
     let onTransactionMade: (shared.Transaction) -> Void
+    private let categories = TransactionCategory.allCases
     
     @State private var name: String = ""
     @State private var amount: Double = 0.0
     @State private var date: Date = Date()
+    @State private var category: TransactionCategory = .general
     
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(alignment: .leading) {
-            Text("Transaction Name")
-            TextField("Name", text: $name)
+            Text(TextKeys.Label.shared.name.get())
+            TextField(TextKeys.Label.shared.name.get(), text: $name)
                 .textFieldStyle(.roundedBorder)
-            Text("Transaction Amount")
-            TextField("Amount", value: $amount, format: .currency(code: "gbp"))
+            Text(TextKeys.Label.shared.amount.get())
+            TextField(TextKeys.Label.shared.amount.get(), value: $amount, format: .currency(code: "gbp"))
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.roundedBorder)
-            DatePicker("Transaction Date", selection: $date)
+            DatePicker(TextKeys.Label.shared.dateTime.get(), selection: $date)
+            HStack {
+                Text(TextKeys.Label.shared.category.get())
+                Spacer()
+                Picker(
+                    TextKeys.Label.shared.category.get(),
+                    selection: $category
+                ) {
+                    ForEach(categories, id: \.self) { c in
+                        Text(c.localisedName.get())
+                    }
+                }
+            }
             Spacer()
-            Button("Confirm") {
+            Button(TextKeys.Button.shared.confirm.get()) {
                 if (!name.isEmpty && amount != 0) {
                     onTransactionMade(
                         Transaction(
                             name: name,
                             amount: amount,
                             dateTimeMillis: Int64(date.timeIntervalSince1970 * 1000),
-                            currencyCode: "GBP"
+                            currencyCode: "GBP",
+                            category: category
                         )
                     )
                     dismiss()
@@ -45,8 +60,15 @@ struct NewTransaction: View {
             }.frame(alignment: .center)
         }
         .padding()
-        .navigationTitle("New Transaction")
+        .navigationTitle(TextKeys.Title.shared.newTransaction.get())
         .navigationBarTitleDisplayMode(.large)
+    }
+}
+
+extension NewTransaction {
+    class Accessibility {
+        private init() {}
+        static let title = "NewTransactionTitle"
     }
 }
 

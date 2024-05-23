@@ -11,12 +11,25 @@ class Transaction(): RealmObject {
     var amount: Double = 0.0
     var dateTimeMillis: Long = 0
     var currencyCode: String = "GBP"
+    var category: String = TransactionCategory.General.name
 
-    constructor(name: String, amount: Double, dateTimeMillis: Long, currencyCode: String) : this() {
+    constructor(name: String, amount: Double, dateTimeMillis: Long, currencyCode: String, category: TransactionCategory) : this() {
         this.name = name
         this.amount = amount
         this.dateTimeMillis = dateTimeMillis
         this.currencyCode = currencyCode
+        this.category = category.name
     }
 
+    fun localisedCategory(): String =
+        optionalCategoryOf(category)?.localisedName?.get()
+        ?: category
+
+    private fun optionalCategoryOf(name: String): TransactionCategory? =
+        try { TransactionCategory.valueOf(name) }
+        catch (e: IllegalArgumentException) { null }
+
 }
+
+
+

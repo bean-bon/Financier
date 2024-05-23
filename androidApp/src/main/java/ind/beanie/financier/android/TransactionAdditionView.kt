@@ -1,5 +1,8 @@
 package ind.beanie.financier.android
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -9,17 +12,26 @@ import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.materialIcon
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -38,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -49,8 +62,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.PopupProperties
 import ind.beanie.financier.DateTimeUtility
+import ind.beanie.financier.TextKeys
 import ind.beanie.financier.model.Transaction
+import ind.beanie.financier.model.TransactionCategory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +92,9 @@ fun TransactionAdditionView(
         is24Hour = true
     )
 
+    var dropdownMenuOpen by remember { mutableStateOf(false) }
+    var categoryPickerState by remember { mutableStateOf(TransactionCategory.General) }
+
     val focusManager = LocalFocusManager.current
 
     val submitEnabled by remember { derivedStateOf {
@@ -91,9 +110,10 @@ fun TransactionAdditionView(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "New Transaction",
+            TextKeys.Title.newTransaction.get(),
             fontSize = 48.sp,
             fontWeight = FontWeight.ExtraBold,
+            lineHeight = 48.sp,
             textAlign = TextAlign.Center
         )
         OutlinedTextField(
@@ -102,10 +122,10 @@ fun TransactionAdditionView(
             onValueChange = {
                 transactionName = it
                 nameError =
-                    if (transactionName.isEmpty()) "Cannot be empty"
+                    if (transactionName.isEmpty()) TextKeys.Error.empty.get()
                     else null
             },
-            label = { Text("Name") },
+            label = { Text(TextKeys.Label.name.get()) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             isError = nameError != null,
             supportingText = { Text(nameError ?: "", color = Color.Red) }
@@ -116,10 +136,10 @@ fun TransactionAdditionView(
             onValueChange = {
                 transactionAmount = it.toDoubleOrNull() ?: transactionAmount
                 amountError =
-                    if (transactionAmount <= 0.0) "Transactions must have a positive, non-zero value."
+                    if (transactionAmount <= 0.0) TextKeys.Error.nonPositiveAmount.get()
                     else null
                 },
-            label = { Text("Amount") },
+            label = { Text(TextKeys.Label.amount.get()) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
                 imeAction = ImeAction.Next
@@ -137,7 +157,9 @@ fun TransactionAdditionView(
                 .onFocusChanged {
                     dateDialog = it.isFocused
                 },
-            readOnly = true
+            readOnly = true,
+            label = { Text(TextKeys.Label.dateTime.get()) },
+            supportingText = {}
         )
         if (dateDialog) {
             DateTimePickerDialog(
@@ -148,15 +170,56 @@ fun TransactionAdditionView(
                     focusManager.clearFocus()
                 },
                 confirmButton = {
-                Button(
-                    {
-                        dateDialog = false
-                        focusManager.clearFocus()
+                    Button(
+                        {
+                            dateDialog = false
+                            focusManager.clearFocus()
+                        }
+                    ) {
+                        Text(TextKeys.Button.confirm.get())
                     }
-                ) {
-                    Text("Confirm")
-                }}
+                }
             )
+        }
+        Column {
+            OutlinedTextField(
+                value = categoryPickerState.localisedName.get(),
+                onValueChange = {},
+                Modifier.onFocusChanged { if (it.isFocused) dropdownMenuOpen = true }.fillMaxWidth(),
+                readOnly = true,
+                label = { Text(TextKeys.Label.category.get()) },
+                trailingIcon = {
+                    AnimatedContent(
+                        targetState = dropdownMenuOpen,
+                        label = "Dropdown Arrow"
+                    ) {
+                        Icon(
+                            if (it) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            TextKeys.Icon.dropdownArrow.get(),
+                        )
+                    }
+                },
+                supportingText = {}
+            )
+            DropdownMenu(
+                expanded = dropdownMenuOpen,
+                modifier = Modifier.fillMaxWidth(0.8f),
+                onDismissRequest = {
+                    dropdownMenuOpen = false
+                    focusManager.clearFocus()
+                }
+            ) {
+                for (category in TransactionCategory.entries) {
+                    DropdownMenuItem(
+                        text = { Text(category.localisedName.get()) },
+                        onClick = {
+                            categoryPickerState = category
+                            dropdownMenuOpen = false
+                            focusManager.clearFocus()
+                        }
+                    )
+                }
+            }
         }
         Button(
             {
@@ -167,13 +230,14 @@ fun TransactionAdditionView(
                         datePickerState.selectedDateMillis?.let {
                             it + timePickerState.millis()
                         } ?: DateTimeUtility.currentLocalDateMillis(),
-                        "GBP"
+                        "GBP",
+                        categoryPickerState
                     )
                 )
             },
             enabled = submitEnabled
         ) {
-            Text("Add transaction")
+            Text(TextKeys.Button.addTransaction.get())
         }
     }
 }
